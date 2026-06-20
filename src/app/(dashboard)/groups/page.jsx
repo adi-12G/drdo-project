@@ -1,22 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState([]);
-
   const [formData, setFormData] = useState({
     short_name: "",
     full_name: "",
   });
 
   const fetchGroups = async () => {
-    const res = await fetch(
-      "http://127.0.0.1:5000/groups"
-    );
-
+    const res = await apiFetch("/groups");
     const data = await res.json();
-
     setGroups(data);
   };
 
@@ -27,41 +23,23 @@ export default function GroupsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    await fetch(
-      "http://127.0.0.1:5000/groups",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      }
-    );
-
-    setFormData({
-      short_name: "",
-      full_name: "",
+    await apiFetch("/groups", {
+      method: "POST",
+      body: JSON.stringify(formData),
     });
 
+    setFormData({ short_name: "", full_name: "" });
     fetchGroups();
   };
 
   const deleteGroup = async (id) => {
-    await fetch(
-      `http://127.0.0.1:5000/groups/${id}`,
-      {
-        method: "DELETE",
-      }
-    );
-
+    await apiFetch(`/groups/${id}`, { method: "DELETE" });
     fetchGroups();
   };
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-[#073B4C]">
-        Groups
-      </h1>
+      <h1 className="text-3xl font-bold mb-6 text-[#073B4C]">Groups</h1>
 
       <form
         onSubmit={handleSubmit}
@@ -73,10 +51,7 @@ export default function GroupsPage() {
           className="border p-2 text-[#073B4C]"
           value={formData.short_name}
           onChange={(e) =>
-            setFormData({
-              ...formData,
-              short_name: e.target.value,
-            })
+            setFormData({ ...formData, short_name: e.target.value })
           }
         />
 
@@ -86,16 +61,11 @@ export default function GroupsPage() {
           className="border p-2 text-[#073B4C]"
           value={formData.full_name}
           onChange={(e) =>
-            setFormData({
-              ...formData,
-              full_name: e.target.value,
-            })
+            setFormData({ ...formData, full_name: e.target.value })
           }
         />
 
-        <button className="bg-[#0F4C5C] text-white px-4 text-[#073B4C]">
-          Add Group
-        </button>
+        <button className="bg-[#0F4C5C] text-white px-4">Add Group</button>
       </form>
 
       <table className="w-full bg-white border">
@@ -111,23 +81,12 @@ export default function GroupsPage() {
         <tbody>
           {groups.map((group) => (
             <tr key={group.group_id}>
-              <td className="border p-3 text-[#073B4C]">
-                {group.group_id}
-              </td>
-
-              <td className="border p-3 text-[#073B4C]">
-                {group.short_name}
-              </td>
-
-              <td className="border p-3 text-[#073B4C]">
-                {group.full_name}
-              </td>
-
+              <td className="border p-3 text-[#073B4C]">{group.group_id}</td>
+              <td className="border p-3 text-[#073B4C]">{group.short_name}</td>
+              <td className="border p-3 text-[#073B4C]">{group.full_name}</td>
               <td className="border p-3 text-[#073B4C]">
                 <button
-                  onClick={() =>
-                    deleteGroup(group.group_id)
-                  }
+                  onClick={() => deleteGroup(group.group_id)}
                   className="bg-red-600 text-white px-3 py-1 rounded"
                 >
                   Delete
@@ -137,6 +96,10 @@ export default function GroupsPage() {
           ))}
         </tbody>
       </table>
+
+      <p className="text-sm text-gray-600 mt-3">
+        Update is not supported by the backend for groups, so this page currently supports list, create, and delete.
+      </p>
     </div>
   );
 }
