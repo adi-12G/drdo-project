@@ -1,22 +1,20 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 export default function AuthGuard({ children }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
 
     if (!token) {
-      router.replace("/login");
+      navigate("/login", { replace: true });
       return;
     }
 
     setReady(true);
-  }, [router]);
+  }, [navigate]);
 
   if (!ready) {
     return (

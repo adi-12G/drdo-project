@@ -1,15 +1,15 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../lib/api";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,9 +17,9 @@ export default function LoginPage() {
     const token = localStorage.getItem("authToken");
 
     if (token) {
-      router.replace("/");
+      navigate("/", { replace: true });
     }
-  }, [router]);
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +40,8 @@ export default function LoginPage() {
 
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
-      router.push("/");
+
+      navigate("/");
     } catch (loginError) {
       setError(loginError.message || "Login failed");
     } finally {
