@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 export default function Sidebar() {
   const menu = [
@@ -10,9 +10,9 @@ export default function Sidebar() {
     { name: "Admin", path: "/admin" },
     { name: "ADGH", path: "/adgh" },
     {
-  name: "Internal Designations",
-  path: "/internal-designations",
-}
+      name: "Internal Designations",
+      path: "/internal-designations",
+    },
   ];
 
   return (
@@ -25,7 +25,7 @@ export default function Sidebar() {
         {menu.map((item) => (
           <li key={item.name}>
             <Link
-              href={item.path}
+              to={item.path}
               className="block px-5 py-4 hover:bg-[#0F4C5C]"
             >
               {item.name}

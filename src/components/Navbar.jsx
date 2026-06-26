@@ -1,14 +1,12 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("authUser");
-    router.replace("/login");
+    navigate("/login", { replace: true });
   };
 
   return (
