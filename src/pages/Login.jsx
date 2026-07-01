@@ -17,7 +17,7 @@ export default function LoginPage() {
     const token = localStorage.getItem("authToken");
 
     if (token) {
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (loginError) {
       setError(loginError.message || "Login failed");
     } finally {
