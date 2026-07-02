@@ -56,6 +56,10 @@ const emptyCreateForm = {
   designation_id: "",
   internal_designation_id: "",
   group_id: "",
+  user_type: "",
+  username: "",
+  password: "",
+  is_gazetted: false,
 };
 
 const emptyEditForm = {
@@ -71,6 +75,10 @@ const emptyEditForm = {
   designation_id: "",
   internal_designation_id: "",
   group_id: "",
+  user_type: "",
+  username: "",
+  is_gazetted: false,
+  new_password: "", // only sent if admin fills it in, kept separate from the rest of the edit payload
 };
 
 export default function EmployeesPage() {
@@ -178,6 +186,12 @@ export default function EmployeesPage() {
           designation_id: createForm.designation_id || null,
           internal_designation_id: createForm.internal_designation_id || null,
           group_id: createForm.group_id || null,
+          user_type: createForm.user_type || null,
+          // Default the username to the PIS number if the field was left blank.
+          username: createForm.username || createForm.pis_number,
+          // Sent as plain text as requested — no hashing/encryption applied here.
+          password: createForm.password || null,
+          is_gazetted: createForm.is_gazetted ? 1 : 0,
         }),
       });
 
@@ -215,6 +229,10 @@ export default function EmployeesPage() {
       designation_id: employee.designation_id || "",
       internal_designation_id: employee.internal_designation_id || "",
       group_id: employee.group_id || "",
+      user_type: employee.user_type || "",
+      username: employee.username || "",
+      is_gazetted: !!employee.is_gazetted,
+      new_password: "",
     });
   };
 
@@ -233,10 +251,12 @@ export default function EmployeesPage() {
     setError("");
 
     try {
+      const { new_password, ...editFields } = editForm;
+
       const res = await apiFetch(`/employees/${editingEmployeeId}`, {
         method: "PUT",
         body: JSON.stringify({
-          ...editForm,
+          ...editFields,
           middle_name: editForm.middle_name || null,
           gender: editForm.gender || null,
           dob: editForm.dob ? toDbDate(editForm.dob) : null,
@@ -246,6 +266,12 @@ export default function EmployeesPage() {
           designation_id: editForm.designation_id || null,
           internal_designation_id: editForm.internal_designation_id || null,
           group_id: editForm.group_id || null,
+          user_type: editForm.user_type || null,
+          username: editForm.username || null,
+          is_gazetted: editForm.is_gazetted ? 1 : 0,
+          // Only include the password field if the admin actually typed a new one.
+          // Sent as plain text as requested — no hashing/encryption applied here.
+          ...(new_password ? { password: new_password } : {}),
         }),
       });
 
@@ -303,7 +329,8 @@ export default function EmployeesPage() {
         return (
           fullName.includes(term) ||
           (employee.pis_number || "").toLowerCase().includes(term) ||
-          (employee.email || "").toLowerCase().includes(term)
+          (employee.email || "").toLowerCase().includes(term) ||
+          (employee.username || "").toLowerCase().includes(term)
         );
       })
     : [];
@@ -497,6 +524,60 @@ export default function EmployeesPage() {
             ))}
           </select>
 
+          <select
+            className="border p-2 text-black"
+            value={createForm.user_type}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, user_type: e.target.value })
+            }
+          >
+            <option value="">Select User Type</option>
+            <option value="admin">Admin</option>
+            <option value="employee">Employee</option>
+          </select>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Username"
+              className="border p-2 text-black flex-1"
+              value={createForm.username}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, username: e.target.value })
+              }
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setCreateForm({ ...createForm, username: createForm.pis_number })
+              }
+              className="bg-gray-200 text-black px-2 rounded text-sm whitespace-nowrap"
+            >
+              Use PIS
+            </button>
+          </div>
+
+          <input
+            type="password"
+            placeholder="Password"
+            className="border p-2 text-black"
+            value={createForm.password}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, password: e.target.value })
+            }
+          />
+
+          <label className="flex items-center gap-2 text-sm text-black">
+            <input
+              type="checkbox"
+              checked={createForm.is_gazetted}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, is_gazetted: e.target.checked })
+              }
+            />
+            Gazetted
+          </label>
+
           <div className="col-span-2">
             <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
               Add Employee
@@ -664,6 +745,49 @@ export default function EmployeesPage() {
             ))}
           </select>
 
+          <select
+            className="border p-2 text-black"
+            value={editForm.user_type}
+            onChange={(e) =>
+              setEditForm({ ...editForm, user_type: e.target.value })
+            }
+          >
+            <option value="">Select User Type</option>
+            <option value="admin">Admin</option>
+            <option value="employee">Employee</option>
+          </select>
+
+          <input
+            type="text"
+            placeholder="Username"
+            className="border p-2 text-black"
+            value={editForm.username}
+            onChange={(e) =>
+              setEditForm({ ...editForm, username: e.target.value })
+            }
+          />
+
+          <input
+            type="password"
+            placeholder="New Password (leave blank to keep current)"
+            className="border p-2 text-black"
+            value={editForm.new_password}
+            onChange={(e) =>
+              setEditForm({ ...editForm, new_password: e.target.value })
+            }
+          />
+
+          <label className="flex items-center gap-2 text-sm text-black">
+            <input
+              type="checkbox"
+              checked={editForm.is_gazetted}
+              onChange={(e) =>
+                setEditForm({ ...editForm, is_gazetted: e.target.checked })
+              }
+            />
+            Gazetted
+          </label>
+
           <div className="col-span-2 flex gap-2">
             <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
               Save Changes
@@ -682,7 +806,7 @@ export default function EmployeesPage() {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Search by name, PIS number, or email..."
+          placeholder="Search by name, PIS number, username, or email..."
           className="border p-2 text-black w-full max-w-md rounded"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -695,9 +819,12 @@ export default function EmployeesPage() {
             <th className="border p-2 text-[#073B4C]">ID</th>
             <th className="border p-2 text-[#073B4C]">PIS</th>
             <th className="border p-2 text-[#073B4C]">Name</th>
+            <th className="border p-2 text-[#073B4C]">Username</th>
+            <th className="border p-2 text-[#073B4C]">User Type</th>
             <th className="border p-2 text-[#073B4C]">Email</th>
             <th className="border p-2 text-[#073B4C]">Mobile</th>
             <th className="border p-2 text-[#073B4C]">DOB</th>
+            <th className="border p-2 text-[#073B4C]">Gazetted</th>
             <th className="border p-2 text-[#073B4C]">Status</th>
             {isAdmin ? <th className="border p-2 text-[#073B4C]">Actions</th> : null}
           </tr>
@@ -711,9 +838,14 @@ export default function EmployeesPage() {
               <td className="border p-2 text-[#073B4C]">
                 {employee.first_name} {employee.middle_name} {employee.last_name}
               </td>
+              <td className="border p-2 text-[#073B4C]">{employee.username}</td>
+              <td className="border p-2 text-[#073B4C]">{employee.user_type}</td>
               <td className="border p-2 text-[#073B4C]">{employee.email}</td>
               <td className="border p-2 text-[#073B4C]">{employee.mobile}</td>
               <td className="border p-2 text-[#073B4C]">{employee.dob}</td>
+              <td className="border p-2 text-[#073B4C]">
+                {employee.is_gazetted ? "Yes" : "No"}
+              </td>
               <td className="border p-2 text-[#073B4C]">
                 {employee.status ? "Active" : "Inactive"}
               </td>
@@ -738,7 +870,7 @@ export default function EmployeesPage() {
 
           {filteredEmployees.length === 0 ? (
             <tr>
-              <td colSpan={isAdmin ? 8 : 7} className="border p-4 text-center text-gray-500">
+              <td colSpan={isAdmin ? 11 : 10} className="border p-4 text-center text-gray-500">
                 No employees found.
               </td>
             </tr>
