@@ -1,10 +1,14 @@
 import mysql.connector
+from mysql.connector import pooling
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-db = mysql.connector.connect(
+db_pool = pooling.MySQLConnectionPool(
+    pool_name="drdo_pool",
+    pool_size=5,
+    pool_reset_session=True,
     host=os.getenv("DB_HOST"),
     user=os.getenv("DB_USER"),
     password=os.getenv("DB_PASSWORD"),
@@ -12,4 +16,6 @@ db = mysql.connector.connect(
     autocommit=True
 )
 
-cursor = db.cursor(dictionary=True)
+def get_connection():
+    """Get a fresh, live connection from the pool."""
+    return db_pool.get_connection()

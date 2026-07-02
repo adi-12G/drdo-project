@@ -1,19 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash
-from db import cursor, db
+from db import get_connection
 
 auth_bp = Blueprint("auth", __name__)
 
 
-def ensure_connection():
-    global db, cursor
-    if not db.is_connected():
-        db.reconnect(attempts=3, delay=2)
-        cursor = db.cursor(dictionary=True)
-
-
-def _find_user(username):
+def _find_user(cursor, username):
     """Look up a user by username across admin, employee, and adgh.
 
     Checks admin, then employee (must also have status = TRUE), then adgh.
@@ -92,31 +85,34 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
 
-    ensure_connection()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        user, role = _find_user(cursor, username)
+        if not user:
+            return jsonify({"error": "Invalid credentials"}), 401
 
-    user, role = _find_user(username)
-    if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
+        if not _verify_password(user["password"], password):
+            return jsonify({"error": "Invalid credentials"}), 401
 
-    if not _verify_password(user["password"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    token = create_access_token(
-        identity=f"{role}:{_user_id(user, role)}",
-        additional_claims={
-            "id": _user_id(user, role),
-            "username": user["username"],
-            "role": role,
-        },
-    )
-
-    return jsonify(
-        {
-            "token": token,
-            "user": {
-                "name": _display_name(user, role),
+        token = create_access_token(
+            identity=f"{role}:{_user_id(user, role)}",
+            additional_claims={
+                "id": _user_id(user, role),
                 "username": user["username"],
                 "role": role,
             },
-        }
-    )
+        )
+
+        return jsonify(
+            {
+                "token": token,
+                "user": {
+                    "name": _display_name(user, role),
+                    "username": user["username"],
+                    "role": role,
+                },
+            }
+        )
+    finally:
+        conn.close()
