@@ -11,6 +11,9 @@ function getStoredUser() {
 const navItems = [
   { to: "/dashboard", label: "Dashboard", end: true },
   { to: "/dashboard/employees", label: "Employees" },
+  { to: "/dashboard/cadres", label: "Cadres" },
+  { to: "/dashboard/designations", label: "Designations" },
+  { to: "/dashboard/groups", label: "Groups" },
 ];
 
 export default function DashboardLayout() {

@@ -10,10 +10,47 @@ function getStoredUser() {
   }
 }
 
+// <input type="date"> only understands ISO (YYYY-MM-DD), but the DB/API
+// stores dob as DD-MM-YYYY. These helpers convert between the two.
+function toInputDate(dbDate) {
+  if (!dbDate) return "";
+
+  // Already ISO (e.g. "1990-05-14" or a full timestamp)
+  if (/^\d{4}-\d{2}-\d{2}/.test(dbDate)) {
+    return dbDate.slice(0, 10);
+  }
+
+  // DD-MM-YYYY or DD/MM/YYYY
+  const match = dbDate.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month}-${day}`;
+  }
+
+  return "";
+}
+
+function toDbDate(inputDate) {
+  if (!inputDate) return "";
+
+  const match = inputDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}-${month}-${year}`;
+  }
+
+  return inputDate;
+}
+
 const emptyCreateForm = {
   pis_number: "",
   first_name: "",
+  middle_name: "",
   last_name: "",
+  gender: "",
+  dob: "",
+  mobile: "",
+  tele_no: "",
   email: "",
   cadre_id: "",
   designation_id: "",
@@ -23,8 +60,17 @@ const emptyCreateForm = {
 
 const emptyEditForm = {
   first_name: "",
+  middle_name: "",
   last_name: "",
+  gender: "",
+  dob: "",
+  mobile: "",
+  tele_no: "",
   email: "",
+  cadre_id: "",
+  designation_id: "",
+  internal_designation_id: "",
+  group_id: "",
 };
 
 export default function EmployeesPage() {
@@ -123,6 +169,11 @@ export default function EmployeesPage() {
         method: "POST",
         body: JSON.stringify({
           ...createForm,
+          middle_name: createForm.middle_name || null,
+          gender: createForm.gender || null,
+          dob: createForm.dob ? toDbDate(createForm.dob) : null,
+          mobile: createForm.mobile || null,
+          tele_no: createForm.tele_no || null,
           cadre_id: createForm.cadre_id || null,
           designation_id: createForm.designation_id || null,
           internal_designation_id: createForm.internal_designation_id || null,
@@ -153,8 +204,17 @@ export default function EmployeesPage() {
     setEditingEmployeeId(employee.emp_id);
     setEditForm({
       first_name: employee.first_name || "",
+      middle_name: employee.middle_name || "",
       last_name: employee.last_name || "",
+      gender: employee.gender || "",
+      dob: toInputDate(employee.dob),
+      mobile: employee.mobile || "",
+      tele_no: employee.tele_no || "",
       email: employee.email || "",
+      cadre_id: employee.cadre_id || "",
+      designation_id: employee.designation_id || "",
+      internal_designation_id: employee.internal_designation_id || "",
+      group_id: employee.group_id || "",
     });
   };
 
@@ -175,7 +235,18 @@ export default function EmployeesPage() {
     try {
       const res = await apiFetch(`/employees/${editingEmployeeId}`, {
         method: "PUT",
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          ...editForm,
+          middle_name: editForm.middle_name || null,
+          gender: editForm.gender || null,
+          dob: editForm.dob ? toDbDate(editForm.dob) : null,
+          mobile: editForm.mobile || null,
+          tele_no: editForm.tele_no || null,
+          cadre_id: editForm.cadre_id || null,
+          designation_id: editForm.designation_id || null,
+          internal_designation_id: editForm.internal_designation_id || null,
+          group_id: editForm.group_id || null,
+        }),
       });
 
       if (res.status === 401) {
@@ -284,11 +355,66 @@ export default function EmployeesPage() {
 
           <input
             type="text"
+            placeholder="Middle Name"
+            className="border p-2 text-black"
+            value={createForm.middle_name}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, middle_name: e.target.value })
+            }
+          />
+
+          <input
+            type="text"
             placeholder="Last Name"
             className="border p-2 text-black"
             value={createForm.last_name}
             onChange={(e) =>
               setCreateForm({ ...createForm, last_name: e.target.value })
+            }
+          />
+
+          <select
+            className="border p-2 text-black"
+            value={createForm.gender}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, gender: e.target.value })
+            }
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label className="flex flex-col text-xs text-gray-600">
+            Date of Birth
+            <input
+              type="date"
+              className="border p-2 text-black"
+              value={createForm.dob}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, dob: e.target.value })
+              }
+            />
+          </label>
+
+          <input
+            type="tel"
+            placeholder="Mobile"
+            className="border p-2 text-black"
+            value={createForm.mobile}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, mobile: e.target.value })
+            }
+          />
+
+          <input
+            type="tel"
+            placeholder="Telephone No."
+            className="border p-2 text-black"
+            value={createForm.tele_no}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, tele_no: e.target.value })
             }
           />
 
@@ -396,11 +522,66 @@ export default function EmployeesPage() {
 
           <input
             type="text"
+            placeholder="Middle Name"
+            className="border p-2 text-black"
+            value={editForm.middle_name}
+            onChange={(e) =>
+              setEditForm({ ...editForm, middle_name: e.target.value })
+            }
+          />
+
+          <input
+            type="text"
             placeholder="Last Name"
             className="border p-2 text-black"
             value={editForm.last_name}
             onChange={(e) =>
               setEditForm({ ...editForm, last_name: e.target.value })
+            }
+          />
+
+          <select
+            className="border p-2 text-black"
+            value={editForm.gender}
+            onChange={(e) =>
+              setEditForm({ ...editForm, gender: e.target.value })
+            }
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <label className="flex flex-col text-xs text-gray-600">
+            Date of Birth
+            <input
+              type="date"
+              className="border p-2 text-black"
+              value={editForm.dob}
+              onChange={(e) =>
+                setEditForm({ ...editForm, dob: e.target.value })
+              }
+            />
+          </label>
+
+          <input
+            type="tel"
+            placeholder="Mobile"
+            className="border p-2 text-black"
+            value={editForm.mobile}
+            onChange={(e) =>
+              setEditForm({ ...editForm, mobile: e.target.value })
+            }
+          />
+
+          <input
+            type="tel"
+            placeholder="Telephone No."
+            className="border p-2 text-black"
+            value={editForm.tele_no}
+            onChange={(e) =>
+              setEditForm({ ...editForm, tele_no: e.target.value })
             }
           />
 
@@ -414,7 +595,76 @@ export default function EmployeesPage() {
             }
           />
 
-          <div className="flex gap-2">
+          <select
+            className="border p-2 text-black"
+            value={editForm.cadre_id}
+            onChange={(e) =>
+              setEditForm({ ...editForm, cadre_id: e.target.value })
+            }
+          >
+            <option value="">Select Cadre</option>
+            {cadres.map((cadre) => (
+              <option key={cadre.cadre_id} value={cadre.cadre_id}>
+                {cadre.full_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="border p-2 text-black"
+            value={editForm.designation_id}
+            onChange={(e) =>
+              setEditForm({ ...editForm, designation_id: e.target.value })
+            }
+          >
+            <option value="">Select Designation</option>
+            {designations.map((designation) => (
+              <option
+                key={designation.designation_id}
+                value={designation.designation_id}
+              >
+                {designation.full_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="border p-2 text-black"
+            value={editForm.internal_designation_id}
+            onChange={(e) =>
+              setEditForm({
+                ...editForm,
+                internal_designation_id: e.target.value,
+              })
+            }
+          >
+            <option value="">Select Internal Designation</option>
+            {internalDesignations.map((item) => (
+              <option
+                key={item.internal_designation_id}
+                value={item.internal_designation_id}
+              >
+                {item.full_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="border p-2 text-black"
+            value={editForm.group_id}
+            onChange={(e) =>
+              setEditForm({ ...editForm, group_id: e.target.value })
+            }
+          >
+            <option value="">Select Group</option>
+            {groups.map((group) => (
+              <option key={group.group_id} value={group.group_id}>
+                {group.full_name}
+              </option>
+            ))}
+          </select>
+
+          <div className="col-span-2 flex gap-2">
             <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
               Save Changes
             </button>
@@ -446,6 +696,8 @@ export default function EmployeesPage() {
             <th className="border p-2 text-[#073B4C]">PIS</th>
             <th className="border p-2 text-[#073B4C]">Name</th>
             <th className="border p-2 text-[#073B4C]">Email</th>
+            <th className="border p-2 text-[#073B4C]">Mobile</th>
+            <th className="border p-2 text-[#073B4C]">DOB</th>
             <th className="border p-2 text-[#073B4C]">Status</th>
             {isAdmin ? <th className="border p-2 text-[#073B4C]">Actions</th> : null}
           </tr>
@@ -457,9 +709,11 @@ export default function EmployeesPage() {
               <td className="border p-2 text-[#073B4C]">{employee.emp_id}</td>
               <td className="border p-2 text-[#073B4C]">{employee.pis_number}</td>
               <td className="border p-2 text-[#073B4C]">
-                {employee.first_name} {employee.last_name}
+                {employee.first_name} {employee.middle_name} {employee.last_name}
               </td>
               <td className="border p-2 text-[#073B4C]">{employee.email}</td>
+              <td className="border p-2 text-[#073B4C]">{employee.mobile}</td>
+              <td className="border p-2 text-[#073B4C]">{employee.dob}</td>
               <td className="border p-2 text-[#073B4C]">
                 {employee.status ? "Active" : "Inactive"}
               </td>
@@ -484,7 +738,7 @@ export default function EmployeesPage() {
 
           {filteredEmployees.length === 0 ? (
             <tr>
-              <td colSpan={isAdmin ? 6 : 5} className="border p-4 text-center text-gray-500">
+              <td colSpan={isAdmin ? 8 : 7} className="border p-4 text-center text-gray-500">
                 No employees found.
               </td>
             </tr>

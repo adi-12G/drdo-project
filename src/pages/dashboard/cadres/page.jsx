@@ -1,0 +1,142 @@
+import { useEffect, useState } from "react";
+import { apiFetch } from "../../../lib/api";
+
+export default function CadresPage() {
+	const [cadres, setCadres] = useState([]);
+	const [formData, setFormData] = useState({
+		sname: "",
+		full_name: "",
+	});
+	const [error, setError] = useState("");
+
+	const fetchCadres = async () => {
+		try {
+			const res = await apiFetch("/cadres");
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to load cadres");
+			}
+
+			setCadres(Array.isArray(data) ? data : []);
+			setError("");
+		} catch (fetchError) {
+			setCadres([]);
+			setError(fetchError.message || "Failed to load cadres");
+		}
+	};
+
+	useEffect(() => {
+		fetchCadres();
+	}, []);
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+
+		try {
+			const res = await apiFetch("/cadres", {
+				method: "POST",
+				body: JSON.stringify(formData),
+			});
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to create cadre");
+			}
+
+			setFormData({ sname: "", full_name: "" });
+			fetchCadres();
+		} catch (submitError) {
+			setError(submitError.message || "Failed to create cadre");
+		}
+	};
+
+	const deleteCadre = async (id) => {
+			if (!window.confirm("Delete this cadre? This cannot be undone.")) {
+				return;
+			}
+
+		try {
+			const res = await apiFetch(`/cadres/${id}`, { method: "DELETE" });
+			const data = await res.json();
+
+			if (!res.ok) {
+				throw new Error(data.error || "Failed to delete cadre");
+			}
+
+			fetchCadres();
+		} catch (deleteError) {
+			setError(deleteError.message || "Failed to delete cadre");
+		}
+	};
+
+	return (
+		<div>
+			<h1 className="text-3xl font-bold mb-6 text-[#073B4C]">Cadres</h1>
+
+			{error ? <p className="text-sm text-red-600 mb-4">{error}</p> : null}
+
+			<form
+				onSubmit={handleSubmit}
+				className="bg-white p-5 rounded shadow mb-6 grid grid-cols-3 gap-3"
+			>
+				<input
+					type="text"
+					placeholder="Short Name"
+					className="border p-2 text-[#073B4C]"
+					value={formData.sname}
+					onChange={(e) => setFormData({ ...formData, sname: e.target.value })}
+				/>
+
+				<input
+					type="text"
+					placeholder="Full Name"
+					className="border p-2 text-[#073B4C] col-span-2"
+					value={formData.full_name}
+					onChange={(e) =>
+						setFormData({ ...formData, full_name: e.target.value })
+					}
+				/>
+
+				<div className="col-span-3">
+					<button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
+						Add Cadre
+					</button>
+				</div>
+			</form>
+
+			<table className="w-full bg-white border">
+				<thead className="bg-gray-200">
+					<tr>
+						<th className="border p-3 text-[#073B4C]">ID</th>
+						<th className="border p-3 text-[#073B4C]">Short Name</th>
+						<th className="border p-3 text-[#073B4C]">Full Name</th>
+						<th className="border p-3 text-[#073B4C]">Actions</th>
+					</tr>
+				</thead>
+
+				<tbody>
+					{cadres.map((cadre) => (
+						<tr key={cadre.cadre_id}>
+							<td className="border p-3 text-[#073B4C]">{cadre.cadre_id}</td>
+							<td className="border p-3 text-[#073B4C]">{cadre.sname}</td>
+							<td className="border p-3 text-[#073B4C]">{cadre.full_name}</td>
+							<td className="border p-3 text-[#073B4C]">
+								<button
+									onClick={() => deleteCadre(cadre.cadre_id)}
+									className="bg-red-600 text-white px-3 py-1 rounded"
+								>
+									Delete
+								</button>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+
+			<p className="text-sm text-gray-600 mt-3">
+				This page supports list, create, and delete for cadres.
+			</p>
+		</div>
+	);
+}

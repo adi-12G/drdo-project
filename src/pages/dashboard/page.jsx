@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
+import AdminDashboard from "./AdminDashboard";
+import EmployeeDashboard from "./EmployeeDashboard";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-
-  const [stats, setStats] = useState({
-    employees: "--",
-    cadres: "--",
-    designations: "--",
-    groups: "--",
-  });
-
+  const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -28,14 +23,14 @@ export default function DashboardPage() {
           return;
         }
 
-        const data = await res.json();
+        const payload = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || "Failed to load dashboard");
+          throw new Error(payload.error || "Failed to load dashboard");
         }
 
         if (!cancelled) {
-          setStats(data);
+          setData(payload);
         }
       } catch (fetchError) {
         if (!cancelled) {
@@ -45,7 +40,6 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
-
     return () => {
       cancelled = true;
     };
@@ -57,51 +51,11 @@ export default function DashboardPage() {
         DRDO Employee Management System
       </h1>
 
-      {error ? (
-        <p className="text-sm text-red-600 mb-4">{error}</p>
-      ) : null}
+      {error ? <p className="text-sm text-red-600 mb-4">{error}</p> : null}
+      {!data && !error ? <p className="text-sm text-gray-500">Loading dashboard...</p> : null}
 
-      <div className="grid grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500">
-            Employees
-          </h3>
-
-          <p className="text-3xl font-bold text-[#073B4C]">
-            {stats.employees}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500">
-            Cadres
-          </h3>
-
-          <p className="text-3xl font-bold text-[#073B4C]">
-            {stats.cadres}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500">
-            Designations
-          </h3>
-
-          <p className="text-3xl font-bold text-[#073B4C]">
-            {stats.designations}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-gray-500">
-            Groups
-          </h3>
-
-          <p className="text-3xl font-bold text-[#073B4C]">
-            {stats.groups}
-          </p>
-        </div>
-      </div>
+      {data && data.role === "admin" ? <AdminDashboard data={data} /> : null}
+      {data && data.role !== "admin" ? <EmployeeDashboard data={data} /> : null}
     </div>
   );
 }
