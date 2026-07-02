@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import jsonify
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 # Maps each login role to its permission level.
 # "admin" -> can create/update/delete
@@ -23,8 +23,8 @@ def permissions_required(*allowed_permissions):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
-            identity = get_jwt_identity() or {}
-            role = identity.get("role")
+            claims = get_jwt()
+            role = claims.get("role")
             permission = ROLE_PERMISSIONS.get(role)
             if permission not in allowed_permissions:
                 return jsonify({"error": "Forbidden"}), 403
