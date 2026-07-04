@@ -6,7 +6,9 @@ import Employees from "./pages/dashboard/employees/page";
 import Cadres from "./pages/dashboard/cadres/page.jsx";
 import Designations from "./pages/dashboard/designations/page.jsx";
 import Groups from "./pages/dashboard/groups/page.jsx";
-
+import InternalDesignationsPage from "./pages/dashboard/internal-designations/page.jsx";
+import AdminPage from "./pages/dashboard/admin/page.jsx";
+import ADGHPage from "./pages/dashboard/adgh/page.jsx";
 function App() {
   return (
     <BrowserRouter>
@@ -19,6 +21,12 @@ function App() {
           <Route path="cadres" element={<Cadres />} />
           <Route path="designations" element={<Designations />} />
           <Route path="groups" element={<Groups />} />
+         <Route
+  path="internal-designations"
+  element={<InternalDesignationsPage />}
+/>
+< Route path="admin" element={<AdminPage />} />
+< Route path="adgh" element={<ADGHPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
