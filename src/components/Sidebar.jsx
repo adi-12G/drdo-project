@@ -1,20 +1,20 @@
 import { Link } from "react-router-dom";
 
 export default function Sidebar() {
-  const menu = [
-    { name: "Dashboard", path: "/" },
-    { name: "Employees", path: "/employees" },
-    { name: "Cadres", path: "/cadres" },
-    { name: "Designations", path: "/designations" },
-    { name: "Groups", path: "/groups" },
-    { name: "Admin", path: "/admin" },
-    { name: "ADGH", path: "/adgh" },
-    {
-      name: "Internal Designations",
-      path: "/internal-designations",
-    },
-  ];
+ const menu = [
 
+  { name: "Dashboard", path: "/dashboard" },
+  { name: "Employees", path: "/dashboard/employees" },
+  { name: "Cadres", path: "/dashboard/cadres" },
+  { name: "Designations", path: "/dashboard/designations" },
+  { name: "Groups", path: "/dashboard/groups" },
+  {
+    name: "Internal Designations",
+    path: "/dashboard/internal-designations",
+  },
+  { name: "Admin", path: "/dashboard/admin" },
+
+];
   return (
     <aside className="bg-[#073B4C] text-white w-72 min-h-screen">
       <div className="p-5 font-semibold border-b border-gray-500">
