@@ -5,51 +5,38 @@ from db import get_connection
 
 auth_bp = Blueprint("auth", __name__)
 
-
 def _find_user(cursor, username):
-    """Look up a user by username across admin, employee, and adgh.
-
-    Checks admin, then employee (must also have status = TRUE), then adgh.
-    Returns (user_row, role) or (None, None) if no match is found.
-    """
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT *
         FROM admin
-        WHERE username = %s AND deleted = FALSE
-        """,
-        (username,),
-    )
-    user = cursor.fetchone()
-    if user:
-        return user, "admin"
+        WHERE username=%s AND deleted=FALSE
+    """, (username,))
+    rows = cursor.fetchall()
+    if rows:
+        return rows[0], "admin"
 
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT *
         FROM employee
-        WHERE username = %s AND deleted = FALSE AND status = TRUE
-        """,
-        (username,),
-    )
-    user = cursor.fetchone()
-    if user:
-        return user, "employee"
+        WHERE username=%s
+        AND deleted=FALSE
+        AND status=TRUE
+    """, (username,))
+    rows = cursor.fetchall()
+    if rows:
+        return rows[0], "employee"
 
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT *
         FROM adgh
-        WHERE username = %s AND deleted = FALSE
-        """,
-        (username,),
-    )
-    user = cursor.fetchone()
-    if user:
-        return user, "adgh"
+        WHERE username=%s
+        AND deleted=FALSE
+    """, (username,))
+    rows = cursor.fetchall()
+    if rows:
+        return rows[0], "adgh"
 
     return None, None
-
 
 def _verify_password(stored_password, password):
     stored_password = stored_password or ""
@@ -60,19 +47,27 @@ def _verify_password(stored_password, password):
         return True
     return False
 
-
 def _user_id(user, role):
-    # employee's primary key column is named emp_id, not id
-    return user["emp_id"] if role == "employee" else user["id"]
-
+    if role == "employee":
+        return user["emp_id"]
+    elif role == "admin":
+        return user["admin_id"]
+    elif role == "adgh":
+        return user["id"]   
 
 def _display_name(user, role):
     if role == "employee":
-        parts = [user.get("first_name"), user.get("middle_name"), user.get("last_name")]
+        parts = [
+            user.get("first_name"),
+            user.get("middle_name"),
+            user.get("last_name"),
+        ]
         return " ".join(p for p in parts if p)
+
     if role == "adgh":
         return user.get("display_name")
-    return user.get("name")  # admin
+
+    return user.get("username")
 
 
 @auth_bp.route("/login", methods=["POST"])
