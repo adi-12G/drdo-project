@@ -14,6 +14,10 @@ const navItems = [
   { to: "/dashboard/cadres", label: "Cadres" },
   { to: "/dashboard/designations", label: "Designations" },
   { to: "/dashboard/groups", label: "Groups" },
+  { to: "/dashboard/internal-designations", label: "Internal Designations" },
+  { to: "/dashboard/admin", label: "Admin" },
+  {to : "/dashboard/adgh", label: "ADGH"}
+
 ];
 
 export default function DashboardLayout() {
