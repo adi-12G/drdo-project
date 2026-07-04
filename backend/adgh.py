@@ -13,10 +13,22 @@ def get_adgh():
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT *
-            FROM adgh
-            WHERE deleted = FALSE
-        """)
+    SELECT
+    a.adgh_id AS id,
+        a.display_name,
+        a.emp_id,
+        a.group_id,
+        a.username,
+        e.first_name,
+        e.last_name,
+        g.full_name AS group_name
+    FROM adgh a
+    LEFT JOIN employee e
+        ON a.emp_id = e.emp_id
+    LEFT JOIN employee_group g
+        ON a.group_id = g.group_id
+    WHERE a.deleted = FALSE
+""")
         rows = cursor.fetchall()
         cursor.close()
         return jsonify(rows)
@@ -26,7 +38,29 @@ def get_adgh():
         }), 500
     finally:
         conn.close()
+@adgh_bp.route("/adgh/<int:id>", methods=["DELETE"])
+@admin_required
+def delete_adgh(id):
+    conn = get_connection()
 
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE adgh
+            SET deleted = TRUE
+            WHERE adgh_id = %s
+        """, (id,))
+
+        conn.commit()
+        cursor.close()
+
+        return jsonify({
+            "message": "ADGH Deleted"
+        })
+
+    finally:
+        conn.close()
 
 @adgh_bp.route("/adgh", methods=["POST"])
 @admin_required
@@ -51,9 +85,12 @@ def create_adgh():
             data["username"],
             generate_password_hash(data["password"])
         ))
+        conn.commit()
         cursor.close()
         return jsonify({
             "message": "ADGH Created"
         })
     finally:
         conn.close()
+
+        
