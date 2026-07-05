@@ -12,7 +12,6 @@ export default function Sidebar() {
     name: "Internal Designations",
     path: "/dashboard/internal-designations",
   },
-  { name: "Admin", path: "/dashboard/admin" },
 
 ];
   return (

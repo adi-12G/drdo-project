@@ -14,7 +14,7 @@ def get_adgh():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
     SELECT
-    a.adgh_id AS id,
+    a.id,
         a.display_name,
         a.emp_id,
         a.group_id,
@@ -49,7 +49,7 @@ def delete_adgh(id):
         cursor.execute("""
             UPDATE adgh
             SET deleted = TRUE
-            WHERE adgh_id = %s
+            WHERE id = %s
         """, (id,))
 
         conn.commit()

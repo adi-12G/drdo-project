@@ -30,18 +30,6 @@ function toInputDate(dbDate) {
   return "";
 }
 
-function toDbDate(inputDate) {
-  if (!inputDate) return "";
-
-  const match = inputDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    const [, year, month, day] = match;
-    return `${day}-${month}-${year}`;
-  }
-
-  return inputDate;
-}
-
 const emptyCreateForm = {
   pis_number: "",
   first_name: "",
@@ -179,7 +167,7 @@ export default function EmployeesPage() {
           ...createForm,
           middle_name: createForm.middle_name || null,
           gender: createForm.gender || null,
-          dob: createForm.dob ? toDbDate(createForm.dob) : null,
+          dob: createForm.dob || null,
           mobile: createForm.mobile || null,
           tele_no: createForm.tele_no || null,
           cadre_id: createForm.cadre_id || null,
@@ -259,7 +247,7 @@ export default function EmployeesPage() {
           ...editFields,
           middle_name: editForm.middle_name || null,
           gender: editForm.gender || null,
-          dob: editForm.dob ? toDbDate(editForm.dob) : null,
+          dob: editForm.dob || null,
           mobile: editForm.mobile || null,
           tele_no: editForm.tele_no || null,
           cadre_id: editForm.cadre_id || null,

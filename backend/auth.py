@@ -51,7 +51,7 @@ def _user_id(user, role):
     if role == "employee":
         return user["emp_id"]
     elif role == "admin":
-        return user["admin_id"]
+        return user["id"] 
     elif role == "adgh":
         return user["id"]   
 
@@ -66,6 +66,9 @@ def _display_name(user, role):
 
     if role == "adgh":
         return user.get("display_name")
+
+    if role == "admin":
+        return user.get("name")
 
     return user.get("username")
 
@@ -84,9 +87,12 @@ def login():
     try:
         cursor = conn.cursor(dictionary=True)
         user, role = _find_user(cursor, username)
+        print("DEBUG user:", user)
+        print("DEBUG role:", role)
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
 
+        print("DEBUG password check:", _verify_password(user["password"], password))
         if not _verify_password(user["password"], password):
             return jsonify({"error": "Invalid credentials"}), 401
 
