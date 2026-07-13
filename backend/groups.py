@@ -47,6 +47,45 @@ def create_group():
     finally:
         conn.close()
 
+@group_bp.route("/groups/<int:id>", methods=["PUT"])
+@admin_required
+def update_group(id):
+    data = request.json
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE employee_group
+            SET
+                sname=%s,
+                full_name=%s,
+                ad_id=%s,
+                gh_id=%s,
+                va1_id=%s,
+                va2_id=%s
+            WHERE group_id=%s
+            """,
+            (
+                data["sname"],
+                data["full_name"],
+                data["ad_id"] or None,
+                data["gh_id"] or None,
+                data["va1_id"] or None,
+                data["va2_id"] or None,
+                id
+            )
+        )
+
+        cursor.close()
+
+        return jsonify({"message": "Group Updated"})
+
+    finally:
+        conn.close()
+
 
 @group_bp.route("/groups/<int:id>", methods=["DELETE"])
 @admin_required
