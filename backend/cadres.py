@@ -50,6 +50,40 @@ def create_cadre():
     finally:
         conn.close()
 
+        
+
+@cadre_bp.route("/cadres/<int:id>", methods=["PUT"])
+@admin_required
+def update_cadre(id):
+    data = request.json
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE cadre
+            SET
+                sname = %s,
+                full_name = %s
+            WHERE cadre_id = %s
+            """,
+            (
+                data["sname"],
+                data["full_name"],
+                id
+            )
+        )
+
+        cursor.close()
+
+        return jsonify({
+            "message": "Cadre Updated"
+        })
+
+    finally:
+        conn.close()
 
 @cadre_bp.route("/cadres/<int:id>", methods=["DELETE"])
 @admin_required
