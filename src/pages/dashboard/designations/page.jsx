@@ -16,6 +16,7 @@ export default function DesignationsPage() {
   const isAdmin = currentUser?.role === "admin";
 
   const [designations, setDesignations] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [cadres, setCadres] = useState([]);
   const [formData, setFormData] = useState({
     cadre_id: "",
@@ -78,34 +79,73 @@ export default function DesignationsPage() {
     fetchCadres();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await apiFetch("/designations", {
+  try {
+    let res;
+
+    if (editingId) {
+      res = await apiFetch(`/designations/${editingId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...formData,
+          cadre_id: formData.cadre_id || null,
+        }),
+      });
+    } else {
+      res = await apiFetch("/designations", {
         method: "POST",
         body: JSON.stringify({
           ...formData,
           cadre_id: formData.cadre_id || null,
         }),
       });
-      const data = await res.json();
-
-      if (res.status === 401) {
-        handleUnauthorized();
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to create designation");
-      }
-
-      setFormData({ cadre_id: "", sname: "", full_name: "" });
-      fetchDesignations();
-    } catch (submitError) {
-      setError(submitError.message || "Failed to create designation");
     }
-  };
+
+    const data = await res.json();
+
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error(
+        data.error ||
+          (editingId
+            ? "Failed to update designation"
+            : "Failed to create designation")
+      );
+    }
+
+    setFormData({
+      cadre_id: "",
+      sname: "",
+      full_name: "",
+    });
+
+    setEditingId(null);
+    fetchDesignations();
+  } catch (submitError) {
+    setError(
+      submitError.message ||
+        (editingId
+          ? "Failed to update designation"
+          : "Failed to create designation")
+    );
+  }
+};
+
+  const editDesignation = (designation) => {
+	setEditingId(designation.designation_id);
+
+	setFormData({
+		cadre_id: designation.cadre_id,
+		sname: designation.sname,
+		full_name: designation.full_name,
+	});
+};
 
   const deleteDesignation = async (id) => {
     if (!window.confirm("Delete this designation? This cannot be undone.")) {
@@ -176,9 +216,12 @@ export default function DesignationsPage() {
           />
 
           <div className="col-span-3">
-            <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
-              Add Designation
-            </button>
+            <button
+    type="submit"
+    className="bg-[#0F4C5C] text-white px-4 py-2 rounded"
+>
+    {editingId ? "Update Designation" : "Add Designation"}
+</button>
           </div>
         </form>
       ) : null}
@@ -203,12 +246,25 @@ export default function DesignationsPage() {
               <td className="border p-3 text-[#073B4C]">{d.cadre_name}</td>
               {isAdmin ? (
                 <td className="border p-3 text-[#073B4C]">
-                  <button
-                    onClick={() => deleteDesignation(d.designation_id)}
-                    className="bg-red-600 text-white px-3 py-1 rounded"
-                  >
-                    Delete
-                  </button>
+                 
+	<div className="flex gap-2">
+    <button
+        type="button"
+        onClick={() => editDesignation(d)}
+        className="bg-blue-600 text-white px-3 py-1 rounded"
+    >
+        Edit
+    </button>
+
+    <button
+        type="button"
+        onClick={() => deleteDesignation(d.designation_id)}
+        className="bg-red-600 text-white px-3 py-1 rounded"
+    >
+        Delete
+    </button>
+</div>
+
                 </td>
               ) : null}
             </tr>
