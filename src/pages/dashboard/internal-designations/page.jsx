@@ -3,6 +3,7 @@ import { apiFetch } from "../../../lib/api";
 
 export default function InternalDesignationsPage() {
 	const [internalDesignations, setInternalDesignations] = useState([]);
+	const [editingId, setEditingId] = useState(null);
 	const [formData, setFormData] = useState({
 		sname: "",
 		full_name: "",
@@ -30,25 +31,59 @@ const fetchInternalDesignations = async () => {
 	}, []);
 
 	const handleSubmit = async (e) => {
-		e.preventDefault();
+	e.preventDefault();
 
-		try {
-			const res = await apiFetch("/internal-designations", {
+	try {
+		let res;
+
+		if (editingId) {
+			res = await apiFetch(`/internal-designations/${editingId}`, {
+				method: "PUT",
+				body: JSON.stringify(formData),
+			});
+		} else {
+			res = await apiFetch("/internal-designations", {
 				method: "POST",
 				body: JSON.stringify(formData),
 			});
-			const data = await res.json();
-
-			if (!res.ok) {
-				throw new Error(data.error || "Failed to create internal designation");
-			}
-
-			setFormData({ sname: "", full_name: "" });
-			fetchInternalDesignations   ();
-		} catch (submitError) {
-			setError(submitError.message || "Failed to create internal designation");
 		}
-	};
+
+		const data = await res.json();
+
+		if (!res.ok) {
+			throw new Error(
+				data.error ||
+					(editingId
+						? "Failed to update internal designation"
+						: "Failed to create internal designation")
+			);
+		}
+
+		setFormData({
+			sname: "",
+			full_name: "",
+		});
+
+		setEditingId(null);
+		fetchInternalDesignations();
+	} catch (submitError) {
+		setError(
+			submitError.message ||
+				(editingId
+					? "Failed to update internal designation"
+					: "Failed to create internal designation")
+		);
+	}
+};
+
+const editInternalDesignation = (item) => {
+    setEditingId(item.internal_designation_id);
+
+    setFormData({
+        sname: item.sname,
+        full_name: item.full_name,
+    });
+};
 
 	const deleteInternalDesignation = async (id) => {
 			if (!window.confirm("Delete this internal designation   ? This cannot be undone.")) {
@@ -99,8 +134,10 @@ const fetchInternalDesignations = async () => {
 
 				<div className="col-span-3">
 					<button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
-						Add Internal Designation
-					</button>
+	{editingId
+		? "Update Internal Designation"
+		: "Add Internal Designation"}
+</button>
 				</div>
 			</form>
 
@@ -127,16 +164,27 @@ const fetchInternalDesignations = async () => {
         {internalDesignation.full_name}
       </td>
       <td className="border p-3 text-[#073B4C]">
-        <button
-          onClick={() =>
-            deleteInternalDesignation(
-              internalDesignation.internal_designation_id
-            )
-          }
-          className="bg-red-600 text-white px-3 py-1 rounded"
-        >
-          Delete
-        </button>
+       <div className="flex gap-2">
+	<button
+		type="button"
+		onClick={() => editInternalDesignation(internalDesignation)}
+		className="bg-blue-600 text-white px-3 py-1 rounded"
+	>
+		Edit
+	</button>
+
+	<button
+		type="button"
+		onClick={() =>
+			deleteInternalDesignation(
+				internalDesignation.internal_designation_id
+			)
+		}
+		className="bg-red-600 text-white px-3 py-1 rounded"
+	>
+		Delete
+	</button>
+</div>
       </td>
     </tr>
   ))}
