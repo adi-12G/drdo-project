@@ -3,6 +3,7 @@ import { apiFetch } from "../../../lib/api";
 
 export default function CadresPage() {
 	const [cadres, setCadres] = useState([]);
+	const [editingId, setEditingId] = useState(null);
 	const [formData, setFormData] = useState({
 		sname: "",
 		full_name: "",
@@ -31,25 +32,49 @@ export default function CadresPage() {
 	}, []);
 
 	const handleSubmit = async (e) => {
-		e.preventDefault();
+	e.preventDefault();
 
-		try {
-			const res = await apiFetch("/cadres", {
+	try {
+		let res;
+
+		if (editingId) {
+			res = await apiFetch(`/cadres/${editingId}`, {
+				method: "PUT",
+				body: JSON.stringify(formData),
+			});
+		} else {
+			res = await apiFetch("/cadres", {
 				method: "POST",
 				body: JSON.stringify(formData),
 			});
-			const data = await res.json();
-
-			if (!res.ok) {
-				throw new Error(data.error || "Failed to create cadre");
-			}
-
-			setFormData({ sname: "", full_name: "" });
-			fetchCadres();
-		} catch (submitError) {
-			setError(submitError.message || "Failed to create cadre");
 		}
-	};
+
+		const data = await res.json();
+
+		if (!res.ok) {
+			throw new Error(data.error || "Operation failed");
+		}
+
+		setFormData({
+			sname: "",
+			full_name: "",
+		});
+
+		setEditingId(null);
+		fetchCadres();
+	} catch (err) {
+		setError(err.message);
+	}
+};
+
+const editCadre = (cadre) => {
+	setEditingId(cadre.cadre_id);
+
+	setFormData({
+		sname: cadre.sname,
+		full_name: cadre.full_name,
+	});
+};
 
 	const deleteCadre = async (id) => {
 			if (!window.confirm("Delete this cadre? This cannot be undone.")) {
@@ -100,7 +125,7 @@ export default function CadresPage() {
 
 				<div className="col-span-3">
 					<button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
-						Add Cadre
+						{editingId ? "Update Cadre" : "Add Cadre"}
 					</button>
 				</div>
 			</form>
@@ -122,12 +147,21 @@ export default function CadresPage() {
 							<td className="border p-3 text-[#073B4C]">{cadre.sname}</td>
 							<td className="border p-3 text-[#073B4C]">{cadre.full_name}</td>
 							<td className="border p-3 text-[#073B4C]">
-								<button
-									onClick={() => deleteCadre(cadre.cadre_id)}
-									className="bg-red-600 text-white px-3 py-1 rounded"
-								>
-									Delete
-								</button>
+								<div className="flex items-center gap-3">
+	<button
+		onClick={() => editCadre(cadre)}
+		className="bg-blue-600 text-white px-3 py-1 rounded"
+	>
+		Edit
+	</button>
+
+	<button
+		onClick={() => deleteCadre(cadre.cadre_id)}
+		className="bg-red-600 text-white px-3 py-1 rounded"
+	>
+		Delete
+	</button>
+</div>
 							</td>
 						</tr>
 					))}
