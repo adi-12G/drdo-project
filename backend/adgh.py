@@ -14,7 +14,7 @@ def get_adgh():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
     SELECT
-    a.id,
+    a.adgh_id AS id,
         a.display_name,
         a.emp_id,
         a.group_id,
@@ -38,6 +38,39 @@ def get_adgh():
         }), 500
     finally:
         conn.close()
+@adgh_bp.route("/adgh/<int:id>", methods=["PUT"])
+@admin_required
+def update_adgh(id):
+    data = request.json
+
+    conn = get_connection()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE adgh
+            SET
+                display_name = %s,
+                emp_id = %s,
+                group_id = %s
+            WHERE adgh_id = %s
+        """, (
+            data["display_name"],
+            data["emp_id"],
+            data["group_id"],
+            id
+        ))
+
+        conn.commit()
+        cursor.close()
+
+        return jsonify({
+            "message": "ADGH Updated"
+        })
+
+    finally:
+        conn.close()
 @adgh_bp.route("/adgh/<int:id>", methods=["DELETE"])
 @admin_required
 def delete_adgh(id):
@@ -49,7 +82,7 @@ def delete_adgh(id):
         cursor.execute("""
             UPDATE adgh
             SET deleted = TRUE
-            WHERE id = %s
+            WHERE adgh_id = %s
         """, (id,))
 
         conn.commit()
