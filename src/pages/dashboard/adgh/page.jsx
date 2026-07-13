@@ -15,6 +15,7 @@ export default function ADGHPage() {
   const [adgh, setAdgh] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState(emptyFormData);
 
@@ -106,21 +107,34 @@ export default function ADGHPage() {
     fetchGroups();
   }, []);
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
   e.preventDefault();
   setError("");
 
   try {
-    const res = await apiFetch("/adgh", {
-      method: "POST",
-      body: JSON.stringify({
-        display_name: formData.display_name,
-        emp_id: Number(formData.emp_id),
-        group_id: Number(formData.group_id),
-        username: formData.username,
-        password: formData.password,
-      }),
-    });
+    let res;
+
+    if (editingId) {
+      res = await apiFetch(`/adgh/${editingId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          display_name: formData.display_name,
+          emp_id: Number(formData.emp_id),
+          group_id: Number(formData.group_id),
+        }),
+      });
+    } else {
+      res = await apiFetch("/adgh", {
+        method: "POST",
+        body: JSON.stringify({
+          display_name: formData.display_name,
+          emp_id: Number(formData.emp_id),
+          group_id: Number(formData.group_id),
+          username: formData.username,
+          password: formData.password,
+        }),
+      });
+    }
 
     if (res.status === 401) {
       handleUnauthorized();
@@ -130,17 +144,33 @@ export default function ADGHPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Failed to create ADGH");
+      throw new Error(
+        data.error ||
+          (editingId
+            ? "Failed to update ADGH"
+            : "Failed to create ADGH")
+      );
     }
 
     setFormData(emptyFormData);
+    setEditingId(null);
 
     fetchADGH();
   } catch (err) {
     setError(err.message);
   }
 };
+const editADGH = (item) => {
+  setEditingId(item.id);
 
+  setFormData({
+    display_name: item.display_name,
+    emp_id: item.emp_id,
+    group_id: item.group_id,
+    username: "",
+    password: "",
+  });
+};
 const deleteADGH = async (id) => {
   if (!window.confirm("Delete this ADGH user?")) {
     return;
@@ -240,36 +270,10 @@ return (
           ))}
         </select>
 
-        <input
-          type="text"
-          placeholder="Username"
-          className="border p-2 text-[#073B4C]"
-          value={formData.username}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              username: e.target.value,
-            })
-          }
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="border p-2 text-[#073B4C]"
-          value={formData.password}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              password: e.target.value,
-            })
-          }
-        />
-
         <div className="col-span-3">
           <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
-            Add ADGH
-          </button>
+  {editingId ? "Update ADGH" : "Add ADGH"}
+</button>
         </div>
       </form>
     ) : null}
@@ -314,12 +318,23 @@ return (
 
             {isAdmin ? (
               <td className="border p-3">
-                <button
-                  onClick={() => deleteADGH(item.id)}
-                  className="bg-red-600 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2">
+  <button
+    type="button"
+    onClick={() => editADGH(item)}
+    className="bg-blue-600 text-white px-3 py-1 rounded"
+  >
+    Edit
+  </button>
+
+  <button
+    type="button"
+    onClick={() => deleteADGH(item.id)}
+    className="bg-red-600 text-white px-3 py-1 rounded"
+  >
+    Delete
+  </button>
+</div>
               </td>
             ) : null}
           </tr>
