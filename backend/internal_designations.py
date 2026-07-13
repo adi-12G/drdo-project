@@ -46,7 +46,38 @@ def create_internal_designation():
         })
     finally:
         conn.close()
+@internal_designation_bp.route("/internal-designations/<int:id>", methods=["PUT"])
+@admin_required
+def update_internal_designation(id):
+    data = request.json
 
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE internal_designation
+            SET
+                sname=%s,
+                full_name=%s
+            WHERE internal_designation_id=%s
+            """,
+            (
+                data["sname"],
+                data["full_name"],
+                id
+            )
+        )
+
+        cursor.close()
+
+        return jsonify({
+            "message": "Internal Designation Updated"
+        })
+
+    finally:
+        conn.close()
 
 @internal_designation_bp.route("/internal-designations/<int:id>", methods=["DELETE"])
 @admin_required
