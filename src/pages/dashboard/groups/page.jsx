@@ -23,6 +23,7 @@ function adghLabel(record) {
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [adghEmployees, setAdghEmployees] = useState([]);
   const [error, setError] = useState("");
@@ -67,7 +68,18 @@ export default function GroupsPage() {
       setError(fetchError.message || "Failed to load groups");
     }
   };
+const editGroup = (group) => {
+  setEditingId(group.group_id);
 
+  setFormData({
+    short_name: group.short_name,
+    full_name: group.full_name,
+    ad_id: group.ad_id || "",
+    gh_id: group.gh_id || "",
+    va1_id: group.va1_id || "",
+    va2_id: group.va2_id || "",
+  });
+};
   const fetchEmployees = async () => {
     try {
       const res = await apiFetch("/employees");
@@ -121,11 +133,25 @@ export default function GroupsPage() {
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      const res = await apiFetch("/groups", {
+  try {
+    let res;
+
+    if (editingId) {
+      res = await apiFetch(`/groups/${editingId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...formData,
+          ad_id: formData.ad_id || null,
+          gh_id: formData.gh_id || null,
+          va1_id: formData.va1_id || null,
+          va2_id: formData.va2_id || null,
+        }),
+      });
+    } else {
+      res = await apiFetch("/groups", {
         method: "POST",
         body: JSON.stringify({
           ...formData,
@@ -135,24 +161,36 @@ export default function GroupsPage() {
           va2_id: formData.va2_id || null,
         }),
       });
-
-      if (res.status === 401) {
-        handleUnauthorized();
-        return;
-      }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to create group");
-      }
-
-      setFormData(emptyFormData);
-      fetchGroups();
-    } catch (submitError) {
-      setError(submitError.message || "Failed to create group");
     }
-  };
+
+    if (res.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.error ||
+          (editingId
+            ? "Failed to update group"
+            : "Failed to create group")
+      );
+    }
+
+    setFormData(emptyFormData);
+    setEditingId(null);
+    fetchGroups();
+  } catch (submitError) {
+    setError(
+      submitError.message ||
+        (editingId
+          ? "Failed to update group"
+          : "Failed to create group")
+    );
+  }
+};
 
   const deleteGroup = async (id) => {
     if (!window.confirm("Delete this group? This cannot be undone.")) {
@@ -299,7 +337,7 @@ export default function GroupsPage() {
 
           <div className="col-span-3">
             <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
-              Add Group
+              {editingId ? "Update Group" : "Add Group"}
             </button>
           </div>
         </form>
@@ -331,12 +369,23 @@ export default function GroupsPage() {
               <td className="border p-3 text-[#073B4C]">{employeeName(group.va2_id)}</td>
               {isAdmin ? (
                 <td className="border p-3 text-[#073B4C]">
-                  <button
-                    onClick={() => deleteGroup(group.group_id)}
-                    className="bg-red-600 text-white px-3 py-1 rounded"
-                  >
-                    Delete
-                  </button>
+           <div className="flex gap-2">
+  <button
+    type="button"
+    onClick={() => editGroup(group)}
+    className="bg-blue-600 text-white px-3 py-1 rounded"
+  >
+    Edit
+  </button>
+
+  <button
+    type="button"
+    onClick={() => deleteGroup(group.group_id)}
+    className="bg-red-600 text-white px-3 py-1 rounded"
+  >
+    Delete
+  </button>
+</div>
                 </td>
               ) : null}
             </tr>
