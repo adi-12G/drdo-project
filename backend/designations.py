@@ -55,6 +55,41 @@ def create_designation():
     finally:
         conn.close()
 
+@designation_bp.route("/designations/<int:id>", methods=["PUT"])
+@admin_required
+def update_designation(id):
+    data = request.json
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE designation
+            SET
+                cadre_id = %s,
+                sname = %s,
+                full_name = %s
+            WHERE designation_id = %s
+            """,
+            (
+                data["cadre_id"],
+                data["sname"],
+                data["full_name"],
+                id
+            )
+        )
+
+        cursor.close()
+
+        return jsonify({
+            "message": "Designation Updated"
+        })
+
+    finally:
+        conn.close()
+
 
 @designation_bp.route("/designations/<int:id>", methods=["DELETE"])
 @admin_required
