@@ -38,22 +38,31 @@ def _find_user(cursor, username):
 
     return None, None
 
+
 def _verify_password(stored_password, password):
     stored_password = stored_password or ""
     if check_password_hash(stored_password, password):
         return True
+
     # Temporary compatibility path for legacy plain-text seeded passwords.
     if stored_password == password:
         return True
+
     return False
+
 
 def _user_id(user, role):
     if role == "employee":
-        return user["emp_id"]
+        return user.get("emp_id") or user.get("id")
+
     elif role == "admin":
-        return user["admin_id"]
+        return user.get("admin_id") or user.get("id")
+
     elif role == "adgh":
-        return user["id"]   
+        return user.get("adgh_id") or user.get("id")
+
+    return None
+
 
 def _display_name(user, role):
     if role == "employee":
@@ -83,31 +92,34 @@ def login():
     conn = get_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+
         user, role = _find_user(cursor, username)
+
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
 
         if not _verify_password(user["password"], password):
             return jsonify({"error": "Invalid credentials"}), 401
 
+        user_id = _user_id(user, role)
+
         token = create_access_token(
-            identity=f"{role}:{_user_id(user, role)}",
+            identity=f"{role}:{user_id}",
             additional_claims={
-                "id": _user_id(user, role),
+                "id": user_id,
                 "username": user["username"],
                 "role": role,
             },
         )
 
-        return jsonify(
-            {
-                "token": token,
-                "user": {
-                    "name": _display_name(user, role),
-                    "username": user["username"],
-                    "role": role,
-                },
-            }
-        )
+        return jsonify({
+            "token": token,
+            "user": {
+                "name": _display_name(user, role),
+                "username": user["username"],
+                "role": role,
+            },
+        })
+
     finally:
         conn.close()

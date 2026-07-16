@@ -14,7 +14,7 @@ def get_adgh():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
     SELECT
-    a.adgh_id AS id,
+    a.id,
         a.display_name,
         a.emp_id,
         a.group_id,

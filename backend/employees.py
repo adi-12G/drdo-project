@@ -47,7 +47,15 @@ def get_employees():
     conn = get_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM employee WHERE deleted=FALSE")
+        cursor.execute("""
+SELECT
+    e.*,
+    a.id AS adgh_id
+FROM employee e
+LEFT JOIN adgh a
+    ON e.emp_id = a.emp_id
+WHERE e.deleted = FALSE
+""")
         rows = cursor.fetchall()
         cursor.close()
         return jsonify(rows)
