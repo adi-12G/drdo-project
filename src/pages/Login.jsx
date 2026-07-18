@@ -13,13 +13,20 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
+useEffect(() => {
+  const token = localStorage.getItem("authToken");
+  const user = JSON.parse(localStorage.getItem("authUser") || "null");
 
-    if (token) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [navigate]);
+  if (!token || !user) return;
+
+  if (user.role === "admin") {
+    navigate("/dashboard", { replace: true });
+  } else if (user.role === "employee") {
+    navigate("/employee/dashboard", { replace: true });
+  } else if (user.role === "adgh") {
+    navigate("/dashboard", { replace: true });
+  }
+}, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +48,16 @@ export default function LoginPage() {
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("authUser", JSON.stringify(data.user));
 
-      navigate("/dashboard");
+      localStorage.setItem("authToken", data.token);
+localStorage.setItem("authUser", JSON.stringify(data.user));
+
+if (data.user.role === "admin") {
+  navigate("/dashboard");
+} else if (data.user.role === "employee") {
+  navigate("/employee/dashboard");
+} else if (data.user.role === "adgh") {
+  navigate("/dashboard");
+}
     } catch (loginError) {
       setError(loginError.message || "Login failed");
     } finally {

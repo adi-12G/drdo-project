@@ -1,4 +1,6 @@
+from flask_jwt_extended import get_jwt
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import get_jwt
 from werkzeug.security import generate_password_hash
 from db import get_connection
 from decorators import admin_required, any_user_required
@@ -236,5 +238,63 @@ def delete_employee(id):
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+@employee_bp.route("/employees/me", methods=["GET"])
+@any_user_required
+def get_my_profile():
+    claims = get_jwt()
+
+    if claims.get("role") != "employee":
+        return jsonify({"error": "Forbidden"}), 403
+
+    emp_id = claims.get("id")
+
+    conn = get_connection()
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                e.emp_id,
+                e.pis_number,
+                e.first_name,
+                e.middle_name,
+                e.last_name,
+                e.gender,
+                e.dob,
+                e.mobile,
+                e.tele_no,
+                e.email,
+                e.status,
+                e.is_gazetted,
+
+                c.full_name AS cadre_name,
+                d.full_name AS designation_name,
+                g.full_name AS group_name
+
+            FROM employee e
+
+            LEFT JOIN cadre c
+                ON e.cadre_id = c.cadre_id
+
+            LEFT JOIN designation d
+                ON e.designation_id = d.designation_id
+
+            LEFT JOIN employee_group g
+                ON e.group_id = g.group_id
+
+            WHERE e.emp_id = %s
+              AND e.deleted = FALSE
+        """, (emp_id,))
+
+        employee = cursor.fetchone()
+
+        if not employee:
+            return jsonify({"error": "Employee not found"}), 404
+
+        return jsonify(employee)
+
     finally:
         conn.close()
