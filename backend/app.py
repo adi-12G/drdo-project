@@ -13,7 +13,12 @@ from dashboard import dashboard_bp
 
 app = Flask(__name__)
 
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+)
 
 app.config["JWT_SECRET_KEY"] = "drdo-secret-key-change-in-production"
 

@@ -46,7 +46,6 @@ const emptyCreateForm = {
   group_id: "",
   user_type: "",
   username: "",
-  password: "",
   is_gazetted: false,
 };
 
@@ -66,7 +65,6 @@ const emptyEditForm = {
   user_type: "",
   username: "",
   is_gazetted: false,
-  new_password: "", // only sent if admin fills it in, kept separate from the rest of the edit payload
 };
 
 export default function EmployeesPage() {
@@ -85,6 +83,7 @@ export default function EmployeesPage() {
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
+  const [defaultPassword, setDefaultPassword] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedDesignation, setSelectedDesignation] = useState("");
@@ -186,8 +185,6 @@ export default function EmployeesPage() {
           user_type: createForm.user_type || null,
           // Default the username to the PIS number if the field was left blank.
           username: createForm.username || createForm.pis_number,
-          // Sent as plain text as requested — no hashing/encryption applied here.
-          password: createForm.password || null,
           is_gazetted: createForm.is_gazetted ? 1 : 0,
         }),
       });
@@ -229,7 +226,6 @@ export default function EmployeesPage() {
       user_type: employee.user_type || "",
       username: employee.username || "",
       is_gazetted: !!employee.is_gazetted,
-      new_password: "",
     });
   };
 
@@ -248,12 +244,9 @@ export default function EmployeesPage() {
     setError("");
 
     try {
-      const { new_password, ...editFields } = editForm;
-
       const res = await apiFetch(`/employees/${editingEmployeeId}`, {
         method: "PUT",
         body: JSON.stringify({
-          ...editFields,
           middle_name: editForm.middle_name || null,
           gender: editForm.gender || null,
           dob: editForm.dob || null,
@@ -266,9 +259,6 @@ export default function EmployeesPage() {
           user_type: editForm.user_type || null,
           username: editForm.username || null,
           is_gazetted: editForm.is_gazetted ? 1 : 0,
-          // Only include the password field if the admin actually typed a new one.
-          // Sent as plain text as requested — no hashing/encryption applied here.
-          ...(new_password ? { password: new_password } : {}),
         }),
       });
 
@@ -288,6 +278,60 @@ export default function EmployeesPage() {
       fetchEmployees();
     } catch (editErr) {
       setError(editErr.message || "Failed to update employee");
+    }
+  };
+
+  const handleDefaultPasswordSave = async (e) => {
+    e.preventDefault();
+
+    setError("");
+
+    try {
+      const res = await apiFetch("/password/default", {
+        method: "PUT",
+        body: JSON.stringify({ password: defaultPassword }),
+      });
+
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update default password");
+      }
+
+      setDefaultPassword("");
+      showSuccess("Default password updated");
+    } catch (passwordError) {
+      setError(passwordError.message || "Failed to update default password");
+    }
+  };
+
+  const handleResetPassword = async (id) => {
+    setError("");
+
+    try {
+      const res = await apiFetch(`/employees/${id}/reset-password`, {
+        method: "POST",
+      });
+
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to reset password");
+      }
+
+      showSuccess("Password reset to default");
+    } catch (resetError) {
+      setError(resetError.message || "Failed to reset password");
     }
   };
 
@@ -373,7 +417,36 @@ export default function EmployeesPage() {
         <p className="text-sm text-red-600 mb-4">{error}</p>
       ) : null}
 
-      {isAdmin ? (
+      {isAdmin && !editingEmployeeId ? (
+        <form
+          onSubmit={handleDefaultPasswordSave}
+          className="bg-white p-5 rounded shadow mb-6"
+        >
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-3">
+            <div>
+              <h2 className="text-lg font-semibold text-black">Default Password</h2>
+              <p className="text-sm text-gray-600">
+                New employees and reset-password actions will use this value.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <input
+              type="password"
+              placeholder="Change or add the default password"
+              className="border p-2 text-black flex-1 min-w-[220px]"
+              value={defaultPassword}
+              onChange={(e) => setDefaultPassword(e.target.value)}
+            />
+            <button className="bg-[#0F4C5C] text-white px-4 py-2 rounded">
+              Save Default Password
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {isAdmin && !editingEmployeeId ? (
         <form
           onSubmit={handleCreate}
           className="bg-white p-5 rounded shadow mb-6 grid grid-cols-2 gap-2"
@@ -575,15 +648,9 @@ export default function EmployeesPage() {
             </button>
           </div>
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="border p-2 text-black"
-            value={createForm.password}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, password: e.target.value })
-            }
-          />
+          <div className="col-span-2 text-sm text-gray-600 bg-gray-50 border rounded p-2">
+            New employees will be created with the current default password.
+          </div>
 
           <label className="flex items-center gap-2 text-sm text-black">
             <input
@@ -785,16 +852,6 @@ export default function EmployeesPage() {
             }
           />
 
-          <input
-            type="password"
-            placeholder="New Password (leave blank to keep current)"
-            className="border p-2 text-black"
-            value={editForm.new_password}
-            onChange={(e) =>
-              setEditForm({ ...editForm, new_password: e.target.value })
-            }
-          />
-
           <label className="flex items-center gap-2 text-sm text-black">
             <input
               type="checkbox"
@@ -920,6 +977,13 @@ export default function EmployeesPage() {
                     className="bg-blue-600 text-white px-3 py-1 rounded mr-2"
                   >
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResetPassword(employee.emp_id)}
+                    className="bg-amber-500 text-white px-3 py-1 rounded mr-2"
+                  >
+                    Reset Password
                   </button>
                   <button
                     onClick={() => deleteEmployee(employee.emp_id)}

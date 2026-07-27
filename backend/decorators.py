@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 # Maps each login role to its permission level.
@@ -22,6 +22,9 @@ def permissions_required(*allowed_permissions):
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
+            if request.method == "OPTIONS":
+                return ("", 204)
+
             verify_jwt_in_request()
             claims = get_jwt()
             role = claims.get("role")

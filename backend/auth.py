@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash
 from db import get_connection
+from decorators import admin_required
+from default_password_store import set_default_password
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -123,3 +125,20 @@ def login():
 
     finally:
         conn.close()
+
+
+@auth_bp.route("/password/default", methods=["PUT"])
+@admin_required
+def update_default_password():
+    data = request.json or {}
+    password = (data.get("password") or "").strip()
+
+    if not password:
+        return jsonify({"error": "Default password is required"}), 400
+
+    try:
+        set_default_password(password)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    return jsonify({"message": "Default password updated"})

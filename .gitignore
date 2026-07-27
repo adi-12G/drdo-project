@@ -46,6 +46,7 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
+backend/.employee_default_password.json
 
 # Virtual environments
 .venv/

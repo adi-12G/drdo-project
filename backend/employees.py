@@ -1,14 +1,14 @@
 from flask_jwt_extended import get_jwt
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import get_jwt
 from werkzeug.security import generate_password_hash
 from db import get_connection
 from decorators import admin_required, any_user_required
+from default_password_store import get_default_password
 
 employee_bp = Blueprint("employees", __name__)
 
 
-def _sync_admin_row(cursor, emp_id, user_type, username, password_hash, group_id):
+def _sync_admin_row(cursor, user_type, username, password_hash, group_id):
     """Keep the admin table in sync with an employee's user_type.
 
     - If user_type is "admin": create an admin row for them if one doesn't
@@ -18,10 +18,16 @@ def _sync_admin_row(cursor, emp_id, user_type, username, password_hash, group_id
       so they lose admin login access.
     """
     cursor.execute(
-        "SELECT id FROM admin WHERE emp_id=%s AND deleted=FALSE",
-        (emp_id,),
+        "SELECT id FROM admin WHERE username=%s AND deleted=FALSE",
+        (username,),
     )
     existing = cursor.fetchone()
+    if existing is None:
+        existing_id = None
+    elif isinstance(existing, dict):
+        existing_id = existing.get("id")
+    else:
+        existing_id = existing[0]
 
     if user_type == "admin":
         if existing:
@@ -29,17 +35,17 @@ def _sync_admin_row(cursor, emp_id, user_type, username, password_hash, group_id
                 UPDATE admin
                 SET username=%s, password=%s, g_id=%s
                 WHERE id=%s
-            """, (username, password_hash, group_id, existing[0]))
+            """, (username, password_hash, group_id, existing_id))
         else:
             cursor.execute("""
-                INSERT INTO admin(emp_id, g_id, username, password, user_type, name)
-                VALUES(%s,%s,%s,%s,%s,%s)
-            """, (emp_id, group_id, username, password_hash, "admin", username))
+                INSERT INTO admin(g_id, username, password, user_type, name)
+                VALUES(%s,%s,%s,%s,%s)
+            """, (group_id, username, password_hash, "admin", username))
     else:
         if existing:
             cursor.execute(
                 "UPDATE admin SET deleted=TRUE WHERE id=%s",
-                (existing[0],),
+                (existing_id,),
             )
 
 
@@ -72,14 +78,12 @@ def create_employee():
 
     if not data.get("username"):
         return jsonify({"error": "Username is required"}), 400
-    if not data.get("password"):
-        return jsonify({"error": "Password is required"}), 400
 
     conn = get_connection()
     try:
         cursor = conn.cursor()
 
-        password_hash = generate_password_hash(data["password"])
+        password_hash = generate_password_hash(get_default_password())
 
         cursor.execute("""
             INSERT INTO employee(
@@ -116,7 +120,6 @@ def create_employee():
 
         _sync_admin_row(
             cursor,
-            emp_id=emp_id,
             user_type=data.get("user_type"),
             username=data.get("username"),
             password_hash=password_hash,
@@ -131,6 +134,47 @@ def create_employee():
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+import traceback
+@employee_bp.route("/employees/<int:id>/reset-password", methods=["POST"])
+@admin_required
+def reset_employee_password(id):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT emp_id, username, user_type, group_id FROM employee WHERE emp_id=%s AND deleted=FALSE",
+            (id,),
+        )
+        employee = cursor.fetchone()
+
+        if not employee:
+            return jsonify({"error": "Employee not found"}), 404
+
+        default_password_hash = generate_password_hash(get_default_password())
+
+        cursor.execute(
+            "UPDATE employee SET password=%s WHERE emp_id=%s",
+            (default_password_hash, id),
+        )
+
+        _sync_admin_row(
+            cursor,
+            user_type=employee.get("user_type"),
+            username=employee.get("username"),
+            password_hash=default_password_hash,
+            group_id=employee.get("group_id"),
+        )
+
+        conn.commit()
+        cursor.close()
+        return jsonify({"message": "Password reset to default"})
+
+    except Exception:
+        traceback.print_exc()
+        conn.rollback()
+        raise
 
 
 @employee_bp.route("/employees/<int:id>", methods=["PUT"])
@@ -197,7 +241,6 @@ def update_employee(id):
 
         _sync_admin_row(
             cursor,
-            emp_id=id,
             user_type=data.get("user_type"),
             username=username,
             password_hash=password_hash,
@@ -226,18 +269,26 @@ def delete_employee(id):
             (id,),
         )
 
-        # Also remove their admin access, if they had any.
         cursor.execute(
-            "UPDATE admin SET deleted=TRUE WHERE emp_id=%s",
+            "SELECT username FROM employee WHERE emp_id=%s",
             (id,),
         )
+        employee = cursor.fetchone()
+
+        if employee and employee[0]:
+            cursor.execute(
+                "UPDATE admin SET deleted=TRUE WHERE username=%s AND deleted=FALSE",
+                (employee[0],),
+            )
 
         conn.commit()
         cursor.close()
         return jsonify({"message": "Employee Deleted"})
-    except Exception as e:
+    
+    except Exception:
+        traceback.print_exc()
         conn.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal Server Error"}), 500
     finally:
         conn.close()
 @employee_bp.route("/employees/me", methods=["GET"])
