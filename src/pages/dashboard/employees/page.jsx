@@ -79,12 +79,16 @@ export default function EmployeesPage() {
   const [designations, setDesignations] = useState([]);
   const [internalDesignations, setInternalDesignations] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [adghs, setAdghs] = useState([]);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [createForm, setCreateForm] = useState(emptyCreateForm);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedDesignation, setSelectedDesignation] = useState("");
+  const [selectedAdgh, setSelectedAdgh] = useState("");
 
   function handleUnauthorized() {
     localStorage.removeItem("authToken");
@@ -122,29 +126,34 @@ export default function EmployeesPage() {
 
   const fetchLookups = async () => {
     try {
-      const [cadresRes, designationsRes, internalRes, groupsRes] = await Promise.all([
-        apiFetch("/cadres"),
-        apiFetch("/designations"),
-        apiFetch("/internal-designations"),
-        apiFetch("/groups"),
-      ]);
+      const [cadresRes, designationsRes, internalRes, groupsRes, adghRes] =
+        await Promise.all([
+          apiFetch("/cadres"),
+          apiFetch("/designations"),
+          apiFetch("/internal-designations"),
+          apiFetch("/groups"),
+          apiFetch("/adgh"),
+        ]);
 
       if ([cadresRes, designationsRes, internalRes, groupsRes].some((r) => r.status === 401)) {
         handleUnauthorized();
         return;
       }
 
-      const [cadresData, designationsData, internalData, groupsData] = await Promise.all([
-        cadresRes.json(),
-        designationsRes.json(),
-        internalRes.json(),
-        groupsRes.json(),
-      ]);
+      const [cadresData, designationsData, internalData, groupsData, adghData] =
+        await Promise.all([
+          cadresRes.json(),
+          designationsRes.json(),
+          internalRes.json(),
+          groupsRes.json(),
+          adghRes.json(),
+        ]);
 
       setCadres(Array.isArray(cadresData) ? cadresData : []);
       setDesignations(Array.isArray(designationsData) ? designationsData : []);
       setInternalDesignations(Array.isArray(internalData) ? internalData : []);
       setGroups(Array.isArray(groupsData) ? groupsData : []);
+      setAdghs(Array.isArray(adghData) ? adghData : []);
     } catch (fetchError) {
       setError(fetchError.message || "Failed to load form options");
     }
@@ -311,16 +320,37 @@ export default function EmployeesPage() {
 
   const filteredEmployees = Array.isArray(employees)
     ? employees.filter((employee) => {
-        if (!searchTerm.trim()) return true;
-        const term = searchTerm.toLowerCase();
-        const fullName = `${employee.first_name || ""} ${employee.last_name || ""}`.toLowerCase();
-        return (
-          fullName.includes(term) ||
-          (employee.pis_number || "").toLowerCase().includes(term) ||
-          (employee.email || "").toLowerCase().includes(term) ||
-          (employee.username || "").toLowerCase().includes(term)
-        );
-      })
+      const term = searchTerm.toLowerCase();
+
+      const fullName =
+        `${employee.first_name || ""} ${employee.middle_name || ""} ${employee.last_name || ""}`.toLowerCase();
+
+      const matchesSearch =
+        !searchTerm.trim() ||
+        fullName.includes(term) ||
+        (employee.pis_number || "").toLowerCase().includes(term) ||
+        (employee.email || "").toLowerCase().includes(term) ||
+        (employee.username || "").toLowerCase().includes(term);
+
+      const matchesGroup =
+        !selectedGroup ||
+        String(employee.group_id) === String(selectedGroup);
+
+      const matchesDesignation =
+        !selectedDesignation ||
+        String(employee.designation_id) === String(selectedDesignation);
+
+      const matchesAdgh =
+        !selectedAdgh ||
+        String(employee.adgh_id) === String(selectedAdgh);
+
+      return (
+        matchesSearch &&
+        matchesGroup &&
+        matchesDesignation &&
+        matchesAdgh
+      );
+    })
     : [];
 
   return (
@@ -800,6 +830,52 @@ export default function EmployeesPage() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+      <div className="flex gap-4 flex-wrap mb-4">
+
+        <select
+          className="border p-2 rounded text-black"
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
+        >
+          <option value="">All Groups</option>
+          {groups.map((group) => (
+            <option key={group.group_id} value={group.group_id}>
+              {group.full_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="border p-2 rounded text-black"
+          value={selectedDesignation}
+          onChange={(e) => setSelectedDesignation(e.target.value)}
+        >
+          <option value="">All Designations</option>
+          {designations.map((designation) => (
+            <option
+              key={designation.designation_id}
+              value={designation.designation_id}
+            >
+              {designation.full_name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="border p-2 rounded text-black"
+          value={selectedAdgh}
+          onChange={(e) => setSelectedAdgh(e.target.value)}
+        >
+          <option value="">All ADGH</option>
+          {adghs.map((adgh) => (
+            <option key={adgh.id} value={adgh.id}>
+              {adgh.display_name}
+            </option>
+          ))}
+        </select>
+
+      </div>
+
 
       <table className="w-full bg-white border">
         <thead className="bg-gray-200">
