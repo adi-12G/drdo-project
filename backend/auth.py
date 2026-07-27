@@ -51,7 +51,7 @@ def _user_id(user, role):
     if role == "employee":
         return user["emp_id"]
     elif role == "admin":
-        return user["admin_id"]
+        return user["id"]
     elif role == "adgh":
         return user["id"]   
 
