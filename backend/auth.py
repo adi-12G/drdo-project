@@ -56,12 +56,8 @@ def _user_id(user, role):
         return user.get("emp_id") or user.get("id")
 
     elif role == "admin":
-<<<<<<< HEAD
-        return user["id"]
-=======
         return user.get("admin_id") or user.get("id")
 
->>>>>>> 72c452fba0b96fa423fad5517ec2820fa53e9c71
     elif role == "adgh":
         return user.get("adgh_id") or user.get("id")
 
